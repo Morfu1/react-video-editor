@@ -141,7 +141,7 @@ export default function Navbar({
           >
             <ShareIcon width={18} /> Share
           </Button>
-          <DownloadPopover stateManager={stateManager} />
+          <ExportButton stateManager={stateManager} />
           <Button
             className="flex h-8 gap-1 border border-border"
             variant="default"
@@ -157,73 +157,65 @@ export default function Navbar({
   );
 }
 
-const DownloadPopover = ({ stateManager }: { stateManager: StateManager }) => {
-  const { actions, exportType } = useDownloadState();
-  const [isExportTypeOpen, setIsExportTypeOpen] = useState(false);
-  const [open, setOpen] = useState(false);
+const ExportButton = ({ stateManager }: { stateManager: StateManager }) => {
+  const { actions } = useDownloadState();
 
   const handleExport = () => {
-    const data: IDesign = {
+    const state = stateManager.getState();
+    console.log("Timeline state for export:", {
+      duration: state.duration,
+      trackItemsLength: Object.keys(state.trackItemsMap || {}).length,
+      tracks: state.tracks?.length || 0
+    });
+    
+    // Debug track items to see their actual display values
+    if (state.trackItemsMap) {
+      console.log("Track items in export:");
+      Object.entries(state.trackItemsMap).forEach(([id, item]) => {
+        console.log(`  ${id}: from=${item.display?.from}ms, to=${item.display?.to}ms, type=${item.type}`);
+      });
+    }
+    
+    // Calculate actual timeline duration from current track items
+    let actualTimelineDuration = state.duration;
+    if (state.trackItemsMap && Object.keys(state.trackItemsMap).length > 0) {
+      const maxEndTime = Math.max(
+        ...Object.values(state.trackItemsMap).map((item: any) => item.display?.to || 0)
+      );
+      if (maxEndTime > 0) {
+        actualTimelineDuration = maxEndTime;
+        console.log("Calculated actual timeline duration:", actualTimelineDuration, "ms vs state.duration:", state.duration, "ms");
+      }
+    }
+    
+    const data = {
       id: generateId(),
-      ...stateManager.getState(),
-    };
+      ...state,
+      // Use the calculated timeline duration instead of state.duration
+      timelineDuration: actualTimelineDuration
+    } as IDesign & { timelineDuration: number };
 
+    console.log("Export data:", {
+      designDuration: data.duration,
+      timelineDuration: data.timelineDuration,
+      actualCalculated: actualTimelineDuration
+    });
+
+    // Prepare the payload in the state
     actions.setState({ payload: data });
-    actions.startExport();
+    
+    // Show the export dialog which now handles quality selection and save path
+    actions.setDisplayProgressModal(true);
   };
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button
-          className="flex h-8 gap-1 border border-border"
-          variant="outline"
-        >
-          <Download width={18} /> Export
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent
-        align="end"
-        className="bg-sidebar z-[250] flex w-60 flex-col gap-4"
-      >
-        <Label>Export settings</Label>
-
-        <Popover open={isExportTypeOpen} onOpenChange={setIsExportTypeOpen}>
-          <PopoverTrigger asChild>
-            <Button className="w-full justify-between" variant="outline">
-              <div>{exportType.toUpperCase()}</div>
-              <ChevronDown width={16} />
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="bg-background-subtle z-[251] w-[--radix-popover-trigger-width] px-2 py-2">
-            <div
-              className="flex h-8 items-center rounded-sm px-3 text-sm hover:cursor-pointer hover:bg-zinc-800"
-              onClick={() => {
-                actions.setExportType("mp4");
-                setIsExportTypeOpen(false);
-              }}
-            >
-              MP4
-            </div>
-            <div
-              className="flex h-8 items-center rounded-sm px-3 text-sm hover:cursor-pointer hover:bg-zinc-800"
-              onClick={() => {
-                actions.setExportType("json");
-                setIsExportTypeOpen(false);
-              }}
-            >
-              JSON
-            </div>
-          </PopoverContent>
-        </Popover>
-
-        <div>
-          <Button onClick={handleExport} className="w-full">
-            Export
-          </Button>
-        </div>
-      </PopoverContent>
-    </Popover>
+    <Button
+      className="flex h-8 gap-1 border border-border"
+      variant="outline"
+      onClick={handleExport}
+    >
+      <Download width={18} /> Export
+    </Button>
   );
 };
 

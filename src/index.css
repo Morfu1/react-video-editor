@@ -86,15 +86,14 @@ html {
 }
 
 @layer utilities {
-  @variants responsive {
-    .masonry {
-      column-gap: 1.5em;
-      column-count: 1;
-    }
-    .masonry-sm {
-      gap: 0.5rem;
-      column-count: 2;
-    }
+  /* Responsive variants are automatically applied in Tailwind v3.0+ */
+  .masonry {
+    column-gap: 1.5em;
+    column-count: 1;
+  }
+  .masonry-sm {
+    gap: 0.5rem;
+    column-count: 2;
   }
 }
 
