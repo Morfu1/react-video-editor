@@ -2,11 +2,13 @@ import { useState, useEffect, useCallback } from 'react';
 import { Project, MediaFile } from '@/types/project';
 import { HybridStorageService, StorageLocation } from '@/services/storage/hybridStorageService';
 import { useGoogleAuth } from './useGoogleAuth';
+import useStore from '@/features/editor/store/use-store';
 
 const storageService = new HybridStorageService();
 
 export const useProjectManager = () => {
   const { driveConnected } = useGoogleAuth();
+  const { getTimelineState, loadTimelineState, clearTimeline, setCurrentProjectId } = useStore();
   const [projects, setProjects] = useState<Project[]>([]);
   const [currentProject, setCurrentProject] = useState<Project | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -76,6 +78,9 @@ export const useProjectManager = () => {
 
       const savedProject = await storageService.saveProject(project, location);
       setProjects(prev => [savedProject, ...prev]);
+      
+      // Clear timeline for new project
+      clearTimeline();
       setCurrentProject(savedProject);
       
       return savedProject;
@@ -98,7 +103,32 @@ export const useProjectManager = () => {
       console.log('loadProject called for:', projectId);
       const project = await storageService.loadProject(projectId);
       console.log('loadProject result:', project?.id, 'media files:', project?.mediaFiles?.length);
+      
+      // Set current project first before loading timeline to prevent auto-save during load
       setCurrentProject(project);
+      setCurrentProjectId(project?.id || null);
+      
+      // Clear current timeline first
+      clearTimeline();
+      
+      if (project?.timeline) {
+        console.log('Loading timeline state for project:', projectId);
+        console.log('Timeline data:', JSON.stringify({
+          tracks: project.timeline.tracks?.length || 0,
+          trackItemIds: project.timeline.trackItemIds?.length || 0,
+          trackItemsMap: Object.keys(project.timeline.trackItemsMap || {}).length
+        }));
+        
+        // Store timeline data for restoration when timeline component is ready
+        (window as any).__pendingTimelineRestore = project.timeline;
+        
+        // Also load into store
+        loadTimelineState(project.timeline);
+        
+        console.log('Timeline data loaded and stored for restoration');
+      } else {
+        console.log('No timeline data found for project:', projectId);
+      }
       return project;
     } catch (err: any) {
       console.error('loadProject error:', err);
@@ -107,7 +137,7 @@ export const useProjectManager = () => {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [clearTimeline, loadTimelineState]);
 
   /**
    * Save current project
@@ -120,12 +150,25 @@ export const useProjectManager = () => {
     setError(null);
 
     try {
+      // Get current timeline state and include it in the project
+      const timelineState = getTimelineState();
+      console.log('saveProject - timeline state:', JSON.stringify({
+        tracks: timelineState.tracks?.length || 0,
+        trackItemIds: timelineState.trackItemIds?.length || 0,
+        trackItemsMap: Object.keys(timelineState.trackItemsMap || {}).length
+      }));
+      const projectWithTimeline = {
+        ...project,
+        timeline: timelineState,
+        updatedAt: new Date().toISOString()
+      };
+      
       const savedProject = await storageService.saveProject(
-        project, 
+        projectWithTimeline, 
         location || project.storage.location
       );
       
-      console.log('saveProject - saved project media files:', savedProject.mediaFiles.length);
+      console.log('saveProject - saved project with timeline, media files:', savedProject.mediaFiles.length);
       setCurrentProject(savedProject);
       setProjects(prev => 
         prev.map(p => p.id === savedProject.id ? savedProject : p)
@@ -138,7 +181,7 @@ export const useProjectManager = () => {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [getTimelineState]);
 
   /**
    * Delete a project
@@ -156,6 +199,7 @@ export const useProjectManager = () => {
       
       if (currentProject?.id === projectId) {
         setCurrentProject(null);
+        setCurrentProjectId(null);
       }
 
       // Attempt to delete from storage - only try local for now
@@ -349,6 +393,17 @@ export const useProjectManager = () => {
     }
   }, []);
 
+  /**
+   * Save current timeline state to the current project
+   */
+  const saveCurrentTimeline = useCallback(async (): Promise<void> => {
+    if (!currentProject) {
+      throw new Error('No current project to save timeline to');
+    }
+    
+    await saveProject(currentProject);
+  }, [currentProject, saveProject]);
+
   return {
     // State
     projects,
@@ -373,5 +428,6 @@ export const useProjectManager = () => {
     // Utilities
     clearError: () => setError(null),
     setCurrentProject,
+    saveCurrentTimeline,
   };
 };

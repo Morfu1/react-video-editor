@@ -2,6 +2,7 @@ import { Project, MediaFile, StorageCapabilities } from '@/types/project';
 import { FileSystemService } from './fileSystemService';
 import { IndexedDBService } from './indexedDBService';
 import { DriveStorageService } from './driveStorageService';
+import { serverStorageService } from './serverStorageService';
 import { detectStorageCapabilities } from '@/utils/capabilities';
 
 export type StorageLocation = 'local' | 'drive' | 'both';
@@ -190,7 +191,22 @@ export class HybridStorageService {
       // Try to get from local storage first
       const localFiles = await this.getLocalMediaFiles(projectId);
       if (localFiles.length > 0) {
-        return localFiles;
+        // Filter out invalid blob URLs that don't persist across sessions
+        const validFiles = localFiles.filter(file => {
+          // Keep only files with server URLs (http/https) that persist across sessions
+          return file.url && (
+            file.url.startsWith('http') || 
+            file.url.startsWith('https')
+          );
+        });
+        
+        // If we filtered out broken files, update the project
+        if (validFiles.length !== localFiles.length) {
+          console.log(`Filtered out ${localFiles.length - validFiles.length} invalid media files`);
+          await this.cleanupInvalidMediaFiles(projectId, validFiles);
+        }
+        
+        return validFiles;
       }
 
       // Fallback to Drive if available
@@ -359,6 +375,18 @@ export class HybridStorageService {
   }
 
   private async saveMediaFileLocally(projectId: string, file: File): Promise<MediaFile> {
+    // Try server storage first (best for development persistence)
+    try {
+      const isServerAvailable = await serverStorageService.isServerAvailable();
+      if (isServerAvailable) {
+        console.log('Using server storage for media file');
+        return await serverStorageService.uploadFile(file, projectId);
+      }
+    } catch (error) {
+      console.warn('Server storage failed, falling back to local storage:', error);
+    }
+
+    // Fallback to local storage methods
     if (this.capabilities.fileSystemAccess) {
       return await this.fileSystemService.saveMediaFile(projectId, file);
     } else {
@@ -386,6 +414,18 @@ export class HybridStorageService {
   }
 
   private async getLocalMediaFiles(projectId: string): Promise<MediaFile[]> {
+    // Try to get files from server storage first if available
+    try {
+      const isServerAvailable = await serverStorageService.isServerAvailable();
+      if (isServerAvailable) {
+        // For now, server storage doesn't have a listing endpoint, so fallback to local
+        // We'll add this functionality later if needed
+      }
+    } catch (error) {
+      console.warn('Server storage check failed:', error);
+    }
+
+    // Fallback to local storage methods
     if (this.capabilities.fileSystemAccess) {
       // Implement FileSystem media file listing
       return [];
@@ -410,5 +450,31 @@ export class HybridStorageService {
   private async deleteProjectFromDrive(projectId: string): Promise<void> {
     // Implement Drive project deletion
     await this.driveService.deleteFile(projectId);
+  }
+
+
+
+  /**
+   * Clean up invalid media files from project
+   */
+  private async cleanupInvalidMediaFiles(projectId: string, validFiles: MediaFile[]): Promise<void> {
+    try {
+      // Load the current project
+      const project = await this.loadProject(projectId);
+      if (project) {
+        // Update project with only valid media files
+        const updatedProject = {
+          ...project,
+          mediaFiles: validFiles,
+          updatedAt: new Date().toISOString()
+        };
+        
+        // Save the cleaned project back
+        await this.saveProject(updatedProject);
+        console.log(`Cleaned up invalid media files for project ${projectId}`);
+      }
+    } catch (error) {
+      console.error('Error cleaning up invalid media files:', error);
+    }
   }
 }

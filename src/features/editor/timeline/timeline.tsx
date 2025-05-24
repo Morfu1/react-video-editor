@@ -51,6 +51,7 @@ const Timeline = ({ stateManager }: { stateManager: StateManager }) => {
   );
 
   const { setTimeline } = useStore();
+
   const onScroll = (v: { scrollTop: number; scrollLeft: number }) => {
     if (horizontalScrollbarVpRef.current && verticalScrollbarVpRef.current) {
       verticalScrollbarVpRef.current.scrollTop = -v.scrollTop;

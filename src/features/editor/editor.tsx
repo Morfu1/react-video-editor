@@ -32,6 +32,9 @@ const stateManager = new StateManager({
   },
 });
 
+// Make StateManager globally accessible for timeline persistence
+(window as any).__globalStateManager = stateManager;
+
 const Editor = () => {
   const [projectName, setProjectName] = useState<string>("Untitled video");
   const [showProjectPicker, setShowProjectPicker] = useState(false);

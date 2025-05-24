@@ -8,7 +8,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { ChevronDown, Download, MenuIcon, ShareIcon } from "lucide-react";
+import { ChevronDown, Download, MenuIcon, ShareIcon, Save } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import {
   DropdownMenu,
@@ -41,7 +41,7 @@ export default function Navbar({
 }) {
   const [title, setTitle] = useState(projectName);
   const { user, driveConnected } = useGoogleAuth();
-  const { currentProject, createProject } = useProject();
+  const { currentProject, createProject, saveCurrentTimeline } = useProject();
 
   const handleUndo = () => {
     dispatch(HISTORY_UNDO);
@@ -163,6 +163,23 @@ export default function Navbar({
             disabled={!currentProject || currentProject.storage.location === 'local'}
           >
             <ShareIcon width={18} /> Share
+          </Button>
+          <Button
+            className="flex h-8 gap-1 border border-border"
+            variant="outline"
+            disabled={!currentProject}
+            onClick={async () => {
+              if (currentProject) {
+                try {
+                  await saveCurrentTimeline();
+                  console.log('Manual save completed');
+                } catch (error) {
+                  console.error('Manual save failed:', error);
+                }
+              }
+            }}
+          >
+            <Save width={18} /> Save
           </Button>
           <ExportButton stateManager={stateManager} />
           <Button

@@ -5,6 +5,7 @@ const cors = require('cors');
 const morgan = require('morgan');
 const path = require('path');
 const fs = require('fs-extra');
+const multer = require('multer');
 const { v4: uuidv4 } = require('uuid');
 
 // Import our custom modules
@@ -28,9 +29,45 @@ app.use(cors());
 app.use(morgan('dev'));
 app.use(express.json({ limit: '50mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
+// Serve uploaded files statically
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// Create temp directory if it doesn't exist
+// Create temp and uploads directories if they don't exist
 fs.ensureDirSync(path.join(__dirname, 'temp'));
+fs.ensureDirSync(path.join(__dirname, 'uploads'));
+
+// Configure multer for file uploads
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    // Use a temp directory first, we'll move files after getting projectId from body
+    const tempUploadPath = path.join(__dirname, 'uploads', 'temp');
+    fs.ensureDirSync(tempUploadPath);
+    cb(null, tempUploadPath);
+  },
+  filename: (req, file, cb) => {
+    // Keep original filename with timestamp to avoid conflicts
+    const timestamp = Date.now();
+    const ext = path.extname(file.originalname);
+    const name = path.basename(file.originalname, ext);
+    cb(null, `${name}-${timestamp}${ext}`);
+  }
+});
+
+const upload = multer({ 
+  storage,
+  limits: {
+    fileSize: 100 * 1024 * 1024 // 100MB limit
+  },
+  fileFilter: (req, file, cb) => {
+    // Accept common media file types
+    const allowedTypes = /\.(mp4|mov|avi|webm|mp3|wav|aac|m4a|jpg|jpeg|png|gif|webp)$/i;
+    if (allowedTypes.test(file.originalname)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Invalid file type. Only media files are allowed.'));
+    }
+  }
+});
 
 // Store active rendering jobs
 const activeJobs = new Map();
@@ -45,6 +82,59 @@ io.on('connection', (socket) => {
 });
 
 // API Routes
+
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+// File upload endpoint
+app.post('/api/upload', upload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file uploaded' });
+    }
+
+    const projectId = req.body.projectId || 'default';
+    
+    // Create project directory if it doesn't exist
+    const projectUploadPath = path.join(__dirname, 'uploads', projectId);
+    fs.ensureDirSync(projectUploadPath);
+    
+    // Move file from temp to project directory
+    const oldPath = req.file.path;
+    const newPath = path.join(projectUploadPath, req.file.filename);
+    await fs.move(oldPath, newPath);
+    
+    const fileUrl = `/uploads/${projectId}/${req.file.filename}`;
+    
+    // Return file info compatible with MediaFile interface
+    const mediaFile = {
+      id: uuidv4(),
+      name: req.file.originalname,
+      type: getFileType(req.file.mimetype),
+      size: req.file.size,
+      url: fileUrl,
+      serverPath: newPath
+    };
+
+    console.log(`File uploaded: ${req.file.originalname} -> ${fileUrl}`);
+    
+    res.json(mediaFile);
+  } catch (error) {
+    console.error('Upload error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Helper function to determine file type
+function getFileType(mimetype) {
+  if (mimetype.startsWith('video/')) return 'video';
+  if (mimetype.startsWith('audio/')) return 'audio';
+  if (mimetype.startsWith('image/')) return 'image';
+  return 'unknown';
+}
+
 app.post('/api/render/start', async (req, res) => {
   try {
     const { design, options } = req.body;

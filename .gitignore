@@ -24,3 +24,9 @@ dist-ssr
 *.sw?
 .vercel
 .env
+
+# Uploads directory
+server/uploads/
+
+# Rendered video directory
+server/temp/
