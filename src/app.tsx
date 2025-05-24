@@ -3,6 +3,7 @@ import Editor from "./features/editor";
 import useDataState from "./features/editor/store/use-data-state";
 import { getCompactFontData } from "./features/editor/utils/fonts";
 import { FONTS } from "./features/editor/data/fonts";
+import { ProjectProvider } from "./contexts/ProjectContext";
 
 export default function App() {
   const { setCompactFonts, setFonts } = useDataState();
@@ -12,5 +13,9 @@ export default function App() {
     setFonts(FONTS);
   }, []);
 
-  return <Editor />;
+  return (
+    <ProjectProvider>
+      <Editor />
+    </ProjectProvider>
+  );
 }

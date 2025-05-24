@@ -23,18 +23,25 @@ import { useDownloadState } from "./store/use-download-state";
 import DownloadProgressModal from "./download-progress-modal";
 import AutosizeInput from "@/components/ui/autosize-input";
 import { debounce } from "lodash";
+import { useGoogleAuth } from "@/hooks/useGoogleAuth";
+import { useProject } from "@/contexts/ProjectContext";
+import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
+import { UserDropdown } from "@/components/auth/UserDropdown";
 
 export default function Navbar({
   stateManager,
   setProjectName,
   projectName,
+  onOpenProjectPicker,
 }: {
-  user: null;
   stateManager: StateManager;
   setProjectName: (name: string) => void;
   projectName: string;
+  onOpenProjectPicker?: (tab?: 'existing' | 'new') => void;
 }) {
   const [title, setTitle] = useState(projectName);
+  const { user, driveConnected } = useGoogleAuth();
+  const { currentProject, createProject } = useProject();
 
   const handleUndo = () => {
     dispatch(HISTORY_UNDO);
@@ -44,7 +51,19 @@ export default function Navbar({
     dispatch(HISTORY_REDO);
   };
 
-  const handleCreateProject = async () => {};
+  const handleCreateProject = async () => {
+    try {
+      const project = await createProject(
+        'Untitled Project',
+        undefined,
+        driveConnected ? 'both' : 'local'
+      );
+      setTitle(project.name);
+      setProjectName(project.name);
+    } catch (error) {
+      console.error('Failed to create project:', error);
+    }
+  };
 
   // Create a debounced function for setting the project name
   const debouncedSetProjectName = useCallback(
@@ -84,12 +103,15 @@ export default function Navbar({
             </DropdownMenuTrigger>
             <DropdownMenuContent className="z-[300] w-56 p-2" align="start">
               <DropdownMenuItem
-                onClick={handleCreateProject}
+                onClick={() => onOpenProjectPicker?.('new')}
                 className="cursor-pointer text-muted-foreground"
               >
                 New project
               </DropdownMenuItem>
-              <DropdownMenuItem className="cursor-pointer text-muted-foreground">
+              <DropdownMenuItem 
+                onClick={() => onOpenProjectPicker?.('existing')}
+                className="cursor-pointer text-muted-foreground"
+              >
                 My projects
               </DropdownMenuItem>
               <DropdownMenuItem
@@ -138,6 +160,7 @@ export default function Navbar({
           <Button
             className="flex h-8 gap-1 border border-border"
             variant="outline"
+            disabled={!currentProject || currentProject.storage.location === 'local'}
           >
             <ShareIcon width={18} /> Share
           </Button>
@@ -151,6 +174,11 @@ export default function Navbar({
           >
             Discord
           </Button>
+          {user ? (
+            <UserDropdown />
+          ) : (
+            <GoogleSignInButton size="sm" />
+          )}
         </div>
       </div>
     </div>

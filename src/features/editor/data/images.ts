@@ -32,7 +32,6 @@ export const IMAGES: Partial<IImage>[] = [
     preview: "https://ik.imagekit.io/wombo/images/img5.jpg?tr=w-190",
     type: "image",
   },
-  ,
   {
     id: "images6",
     details: { src: "https://ik.imagekit.io/wombo/images/img6.jpg" },

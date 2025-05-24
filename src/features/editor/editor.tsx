@@ -21,6 +21,9 @@ import CropModal from "./crop-modal/crop-modal";
 import useDataState from "./store/use-data-state";
 import { FONTS } from "./data/fonts";
 import FloatingControl from "./control-item/floating-controls/floating-control";
+import { useProject } from "@/contexts/ProjectContext";
+import { ProjectPickerDialog } from "@/components/projects/ProjectPickerDialog";
+import type { Project } from "@/types/project";
 
 const stateManager = new StateManager({
   size: {
@@ -31,12 +34,39 @@ const stateManager = new StateManager({
 
 const Editor = () => {
   const [projectName, setProjectName] = useState<string>("Untitled video");
+  const [showProjectPicker, setShowProjectPicker] = useState(false);
+  const [projectPickerTab, setProjectPickerTab] = useState<'existing' | 'new'>('existing');
   const timelinePanelRef = useRef<ImperativePanelHandle>(null);
   const { timeline, playerRef } = useStore();
+  const { currentProject, loadProject } = useProject();
 
   useTimelineEvents();
 
   const { setCompactFonts, setFonts } = useDataState();
+
+  // Show project picker if no current project
+  useEffect(() => {
+    if (!currentProject) {
+      setProjectName("Untitled video");
+      setProjectPickerTab('existing');
+      setShowProjectPicker(true);
+    } else {
+      setProjectName(currentProject.name);
+      setShowProjectPicker(false); // Hide picker when project is loaded
+    }
+  }, [currentProject]);
+
+  const handleSelectProject = async (project: Project) => {
+    try {
+      console.log('handleSelectProject called with:', project.id, project.name);
+      const loadedProject = await loadProject(project.id);
+      console.log('Project loaded successfully:', loadedProject?.id);
+      setProjectName(project.name);
+      setShowProjectPicker(false);
+    } catch (error) {
+      console.error('Failed to load project:', error);
+    }
+  };
 
   useEffect(() => {
     setCompactFonts(getCompactFontData(FONTS));
@@ -84,9 +114,18 @@ const Editor = () => {
     <div className="flex h-screen w-screen flex-col">
       <Navbar
         projectName={projectName}
-        user={null}
         stateManager={stateManager}
         setProjectName={setProjectName}
+        onOpenProjectPicker={(tab = 'new') => {
+          setProjectPickerTab(tab);
+          setShowProjectPicker(true);
+        }}
+      />
+      <ProjectPickerDialog
+        open={showProjectPicker}
+        onOpenChange={setShowProjectPicker}
+        onSelectProject={handleSelectProject}
+        defaultTab={projectPickerTab}
       />
       <div className="flex flex-1">
         <ResizablePanelGroup style={{ flex: 1 }} direction="vertical">
