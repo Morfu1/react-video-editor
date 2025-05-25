@@ -19,7 +19,6 @@ const Composition = () => {
     fps,
     trackItemDetailsMap,
     sceneMoveableRef,
-    size,
     transitionsMap,
   } = useStore();
   const mergedTrackItemsDeatilsMap = merge(trackItemsMap, trackItemDetailsMap);
@@ -29,7 +28,7 @@ const Composition = () => {
     trackItemsMap: mergedTrackItemsDeatilsMap,
   });
 
-  const handleTextChange = (id: string, _: string) => {
+  const handleTextChange = (id: string) => {
     const elRef = document.querySelector(`.id-${id}`) as HTMLDivElement;
     const textDiv = elRef.firstElementChild?.firstElementChild
       ?.firstElementChild as HTMLDivElement;
@@ -62,7 +61,7 @@ const Composition = () => {
     sceneMoveableRef?.current?.moveable.forceUpdate();
   };
 
-  const onTextBlur = (id: string, _: string) => {
+  const onTextBlur = (id: string) => {
     const elRef = document.querySelector(`.id-${id}`) as HTMLDivElement;
     const textDiv = elRef.firstElementChild?.firstElementChild
       ?.firstElementChild as HTMLDivElement;
@@ -143,7 +142,7 @@ const Composition = () => {
 
   return (
     <>
-      {groupedItems.map((group, index) => {
+      {groupedItems.map((group) => {
         if (group.length === 1) {
           const item = mergedTrackItemsDeatilsMap[group[0].id];
           return SequenceItem[item.type](item, {

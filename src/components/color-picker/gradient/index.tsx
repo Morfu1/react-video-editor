@@ -30,7 +30,7 @@ const Gradient: FC<IPropsComp> = ({
 }) => {
   const parsedColors = useCallback(() => {
     return parseGradient(value);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [value]);
 
   const initColor = parsedColors();

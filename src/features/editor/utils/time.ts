@@ -47,7 +47,7 @@ export const timeToString = ({ time }: { time: number }): string => {
 
 export const getCurrentTime = () => {
   const currentTimeElement = document.getElementById("video-current-time");
-  let currentTimeSeconds = currentTimeElement
+  const currentTimeSeconds = currentTimeElement
     ? parseFloat(currentTimeElement.getAttribute("data-current-time")!)
     : 0;
   const currentTimeMiliseconds = currentTimeSeconds * 1000;

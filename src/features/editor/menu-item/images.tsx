@@ -1,12 +1,12 @@
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { IMAGES } from "../data/images";
+
 import { dispatch } from "@designcombo/events";
 import { generateId } from "@designcombo/timeline";
 import Draggable from "@/components/shared/draggable";
 import { IImage } from "@designcombo/types";
 import React from "react";
 import { useIsDraggingOverTimeline } from "../hooks/is-dragging-over-timeline";
-import { ADD_ITEMS } from "@designcombo/state";
+import { ADD_IMAGE } from "@designcombo/state";
 import { useProject } from "@/contexts/ProjectContext";
 import { SimpleUploadButton } from "@/components/ui/simple-upload-button";
 import { useGoogleAuth } from "@/hooks/useGoogleAuth";
@@ -39,41 +39,7 @@ export const Images = () => {
   }, [uploadedImages]);
 
   const handleAddImage = (payload: Partial<IImage>) => {
-    const id = generateId();
-    // dispatch(ADD_IMAGE, {
-    //   payload: {
-    //     id,
-    //     type: "image",
-    //     display: {
-    //       from: 5000,
-    //       to: 10000,
-    //     },
-    //     details: {
-    //       src: payload.details?.src,
-    //     },
-    //   },
-    //   options: {
-    //     scaleMode: "fit",
-    //   },
-    // });
-    dispatch(ADD_ITEMS, {
-      payload: {
-        trackItems: [
-          {
-            id,
-            type: "image",
-            display: {
-              from: 0,
-              to: 5000,
-            },
-            details: {
-              src: payload.details?.src,
-            },
-            metadata: {},
-          },
-        ],
-      },
-    });
+    dispatch(ADD_IMAGE, { payload: { ...payload, id: generateId() } });
   };
 
   const handleFileUpload = async (files: File[]) => {
@@ -207,12 +173,20 @@ const ImageItem = ({
           }
           className="flex items-center gap-3 cursor-pointer flex-1"
         >
-          <div className="w-12 h-12 rounded-md overflow-hidden flex-shrink-0">
+          <div className="w-12 h-12 rounded-md overflow-hidden flex-shrink-0 bg-gray-700">
             <img
               draggable={false}
               src={image.preview}
               className="w-full h-full object-cover"
               alt="image"
+              onError={(e) => {
+                console.error('Image thumbnail load error:', e);
+                e.currentTarget.style.display = 'none';
+                const placeholder = document.createElement('div');
+                placeholder.className = 'w-full h-full bg-gray-600 flex items-center justify-center text-xs text-gray-300';
+                placeholder.textContent = 'Image';
+                e.currentTarget.parentElement?.appendChild(placeholder);
+              }}
             />
           </div>
           <div className="flex-1 min-w-0">

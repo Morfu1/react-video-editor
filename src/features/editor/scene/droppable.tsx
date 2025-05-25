@@ -45,32 +45,13 @@ const useDragAndDrop = (onDragStateChange?: (isDragging: boolean) => void) => {
     (e: React.DragEvent<HTMLDivElement>) => {
       e.preventDefault();
       try {
-        const types = e.dataTransfer?.types || [];
-        let foundValidData = false;
-        
-        // Check each data type to see if any contain valid drag data
-        for (const type of types) {
-          if (type.startsWith('application/json') || type.includes('drag-data')) {
-            try {
-              const draggedDataString = e.dataTransfer?.getData(type);
-              if (draggedDataString) {
-                const draggedData: DraggedData = JSON.parse(draggedDataString);
-                if (Object.values(AcceptedDropTypes).includes(draggedData.type)) {
-                  foundValidData = true;
-                  break;
-                }
-              }
-            } catch {
-              // Continue to next type
-            }
-          }
-        }
-        
-        if (foundValidData) {
-          setIsDraggingOver(true);
-          setIsPointerInside(true);
-          onDragStateChange?.(true);
-        }
+        const draggedDataString = e.dataTransfer?.types[0] as string;
+        if (!draggedDataString) return;
+        const draggedData: DraggedData = JSON.parse(draggedDataString);
+        if (!Object.values(AcceptedDropTypes).includes(draggedData.type)) return;
+        setIsDraggingOver(true);
+        setIsPointerInside(true);
+        onDragStateChange?.(true);
       } catch (error) {
         console.error("Error parsing dragged data:", error);
       }

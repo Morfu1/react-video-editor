@@ -20,7 +20,6 @@ const Player = () => {
       compositionHeight={size.height}
       className="h-full w-full"
       fps={fps}
-      overflowVisible
     />
   );
 };

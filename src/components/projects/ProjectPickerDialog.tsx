@@ -14,7 +14,7 @@ import { ProjectCard } from './ProjectCard';
 import { ProjectSettingsDialog } from './ProjectSettingsDialog';
 import { StorageLocationSelector } from './StorageLocationSelector';
 import { useProject } from '@/contexts/ProjectContext';
-import { useGoogleAuth } from '@/hooks/useGoogleAuth';
+
 import { Plus, Search } from 'lucide-react';
 import type { Project, StorageLocation } from '@/types/project';
 

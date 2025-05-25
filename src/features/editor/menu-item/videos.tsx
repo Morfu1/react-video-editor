@@ -1,6 +1,6 @@
 import Draggable from "@/components/shared/draggable";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { VIDEOS } from "../data/video";
+
 import { dispatch } from "@designcombo/events";
 import { ADD_VIDEO } from "@designcombo/state";
 import { generateId } from "@designcombo/timeline";
@@ -32,14 +32,7 @@ export const Videos = () => {
   }, [currentProject?.mediaFiles]);
 
   const handleAddVideo = (payload: Partial<IVideo>) => {
-    // payload.details.src = "https://cdn.designcombo.dev/videos/timer-20s.mp4";
-    dispatch(ADD_VIDEO, {
-      payload,
-      options: {
-        resourceId: "main",
-        scaleMode: "fit",
-      },
-    });
+    dispatch(ADD_VIDEO, { payload: { ...payload, id: generateId() } });
   };
 
   const handleFileUpload = async (files: File[]) => {
@@ -177,20 +170,30 @@ const VideoItem = ({
               metadata: {
                 previewUrl: video.preview,
               },
-            } as any)
+            } as unknown as Partial<IVideo>)
           }
           className="flex items-center gap-3 cursor-pointer flex-1"
         >
-          <div className="w-12 h-12 rounded-md overflow-hidden flex-shrink-0">
+          <div className="w-12 h-12 rounded-md overflow-hidden flex-shrink-0 bg-gray-700">
             <video
               src={video.preview}
               className="w-full h-full object-cover"
               muted
               playsInline
               preload="metadata"
+              poster=""
               onLoadedMetadata={(e) => {
                 // Set the video to show the first frame as thumbnail
-                e.currentTarget.currentTime = 1;
+                e.currentTarget.currentTime = 0.5;
+              }}
+              onError={(e) => {
+                console.error('Video thumbnail load error:', e);
+                // Add fallback styling or placeholder
+                e.currentTarget.style.display = 'none';
+                const placeholder = document.createElement('div');
+                placeholder.className = 'w-full h-full bg-gray-600 flex items-center justify-center text-xs text-gray-300';
+                placeholder.textContent = 'Video';
+                e.currentTarget.parentElement?.appendChild(placeholder);
               }}
             />
           </div>

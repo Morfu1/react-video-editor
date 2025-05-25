@@ -45,8 +45,8 @@ const CropModal = () => {
     const newWidth = (area ? area[2] : oldWidth) * scale;
     const newHeight = (area ? area[3] : oldHeight) * scale;
 
-    let prevCropX = cropTargetDetails?.crop?.x || 0;
-    let prevCropY = cropTargetDetails?.crop?.y || 0;
+    const prevCropX = cropTargetDetails?.crop?.x || 0;
+    const prevCropY = cropTargetDetails?.crop?.y || 0;
 
     // Calculate the element's center before cropping
     const oldCenterX = parseFloat(cropTargetDetails.left) + oldWidth / 2;
@@ -55,8 +55,8 @@ const CropModal = () => {
     const diffWidth = ((oldWidth - newWidth) * imageScale) / 2;
     const diffHeight = ((oldHeight - newHeight) * imageScale) / 2;
 
-    let cropXDiff = (cropX - prevCropX) * imageScale;
-    let cropYDiff = (cropY - prevCropY) * imageScale;
+    const cropXDiff = (cropX - prevCropX) * imageScale;
+    const cropYDiff = (cropY - prevCropY) * imageScale;
 
     // Calculate the new center after cropping
     const newCenterX = oldCenterX - diffWidth + cropXDiff;
@@ -100,7 +100,7 @@ const CropModal = () => {
 
   if (!cropTarget) return;
 
-  let cropTargetDetails = cropTarget.details;
+  const cropTargetDetails = cropTarget.details;
 
   return (
     <>

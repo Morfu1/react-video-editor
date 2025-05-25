@@ -100,7 +100,16 @@ export const SequenceItem: Record<
             durationInFrames={durationInFrames}
           >
             <div style={calculateMediaStyles(details, crop)}>
-              <Img data-id={item.id} src={details.src} />
+              <Img 
+                data-id={item.id} 
+                src={details.src} 
+                style={{ 
+                  width: '100%', 
+                  height: '100%', 
+                  objectFit: 'cover',
+                  display: 'block'
+                }} 
+              />
             </div>
           </Animated>
         </AbsoluteFill>
@@ -149,11 +158,17 @@ export const SequenceItem: Record<
           >
             <div style={calculateMediaStyles(details, crop)}>
               <OffthreadVideo
-                startFrom={(item.trim?.from! / 1000) * fps}
-                endAt={(item.trim?.to! / 1000) * fps}
+                startFrom={((item.trim?.from ?? 0) / 1000) * fps}
+                endAt={((item.trim?.to ?? 5000) / 1000) * fps}
                 playbackRate={playbackRate}
                 src={details.src}
                 volume={details.volume || 0 / 100}
+                style={{ 
+                  width: '100%', 
+                  height: '100%', 
+                  objectFit: 'contain',
+                  display: 'block'
+                }}
               />
             </div>
           </Animated>
@@ -185,8 +200,8 @@ export const SequenceItem: Record<
       >
         <AbsoluteFill>
           <Audio
-            startFrom={(item.trim?.from! / 1000) * fps}
-            endAt={(item.trim?.to! / 1000) * fps}
+            startFrom={((item.trim?.from ?? 0) / 1000) * fps}
+            endAt={((item.trim?.to ?? 5000) / 1000) * fps}
             playbackRate={playbackRate}
             src={details.src}
             volume={details.volume! / 100}

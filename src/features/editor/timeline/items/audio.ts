@@ -216,8 +216,8 @@ class Audio extends AudioBase {
 
     // Calculate which bars are visible
     const barWidth = 4; // 1px bar + 3px space
-    let startBarIndex = Math.floor(visibleStart / barWidth);
-    let endBarIndex = Math.ceil((visibleStart + visibleWidth) / barWidth);
+    const startBarIndex = Math.floor(visibleStart / barWidth);
+    const endBarIndex = Math.ceil((visibleStart + visibleWidth) / barWidth);
     // Only draw visible bars
     ctx.beginPath();
     for (let i = startBarIndex; i < endBarIndex && i < bars.length; i++) {

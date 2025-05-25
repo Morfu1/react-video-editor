@@ -186,10 +186,10 @@ const DownloadProgressModal = () => {
             
             <div className="flex flex-col gap-5 w-96">
               <div className="flex flex-col gap-1">
-                <label className="text-sm text-muted-foreground">Format</label>
+                <label htmlFor="format-select" className="text-sm text-muted-foreground">Format</label>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button className="w-full justify-between bg-background" variant="outline">
+                    <Button id="format-select" className="w-full justify-between bg-background" variant="outline">
                       <div>{exportType.toUpperCase()}</div>
                       <ChevronDown width={16} />
                     </Button>
@@ -210,10 +210,10 @@ const DownloadProgressModal = () => {
               </div>
               
               <div className="flex flex-col gap-1">
-                <label className="text-sm text-muted-foreground">Quality</label>
+                <label htmlFor="quality-select" className="text-sm text-muted-foreground">Quality</label>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button className="w-full justify-between bg-background" variant="outline">
+                    <Button id="quality-select" className="w-full justify-between bg-background" variant="outline">
                       <div>{quality}</div>
                       <ChevronDown width={16} />
                     </Button>
@@ -234,9 +234,11 @@ const DownloadProgressModal = () => {
               </div>
               
               <div className="flex flex-col gap-1">
-                <label className="text-sm text-muted-foreground">Save Filename</label>
+                <label htmlFor="save-filename" className="text-sm text-muted-foreground">Save Filename</label>
                 <div className="flex gap-2">
                   <input
+                    id="save-filename"
+                    name="save-filename"
                     type="text"
                     value={savePath}
                     onChange={handlePathChange}
@@ -286,9 +288,11 @@ const DownloadProgressModal = () => {
             </div>
             
             <div className="flex flex-col gap-1 w-full max-w-md mb-6">
-              <label className="text-sm text-muted-foreground">Download Filename</label>
+              <label htmlFor="download-filename" className="text-sm text-muted-foreground">Download Filename</label>
               <div className="flex gap-2">
                 <input
+                  id="download-filename"
+                  name="download-filename"
                   type="text"
                   value={savePath}
                   onChange={handlePathChange}

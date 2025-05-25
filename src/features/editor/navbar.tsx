@@ -8,8 +8,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { ChevronDown, Download, MenuIcon, ShareIcon, Save } from "lucide-react";
-import { Label } from "@/components/ui/label";
+import { Download, MenuIcon, ShareIcon, Save } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,

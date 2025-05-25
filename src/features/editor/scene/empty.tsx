@@ -54,7 +54,7 @@ const SceneEmpty = () => {
     
     try {
       // Use the ref to get the current project value (avoids stale closure)
-      let project = currentProjectRef.current;
+      const project = currentProjectRef.current;
       
       console.log('Current project state (from ref):', {
         exists: !!project,

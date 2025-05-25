@@ -146,7 +146,7 @@ export const ProjectSettingsDialog = ({
                 fps: parseInt(value)
               }))}
             >
-              <SelectTrigger>
+              <SelectTrigger id="fps">
                 <SelectValue placeholder="Select frame rate" />
               </SelectTrigger>
               <SelectContent>
