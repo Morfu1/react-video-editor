@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Project, MediaFile } from '@/types/project';
 import { HybridStorageService, StorageLocation } from '@/services/storage/hybridStorageService';
 import { useGoogleAuth } from './useGoogleAuth';
@@ -13,6 +13,7 @@ export const useProjectManager = () => {
   const [currentProject, setCurrentProject] = useState<Project | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const mediaFileQueue = useRef(new Map<string, Promise<any>>());
 
   // Initialize storage service
   useEffect(() => {
@@ -169,7 +170,13 @@ export const useProjectManager = () => {
       );
       
       console.log('saveProject - saved project with timeline, media files:', savedProject.mediaFiles.length);
-      setCurrentProject(savedProject);
+      // Only update currentProject if the saved version has same or more media files
+      // This prevents race conditions during file uploads where we might override with stale data
+      if (!currentProject || 
+          savedProject.mediaFiles.length >= currentProject.mediaFiles.length ||
+          currentProject.updatedAt <= savedProject.updatedAt) {
+        setCurrentProject(savedProject);
+      }
       setProjects(prev => 
         prev.map(p => p.id === savedProject.id ? savedProject : p)
       );
@@ -253,54 +260,75 @@ export const useProjectManager = () => {
     location: StorageLocation = 'local',
     onProgress?: (progress: number) => void
   ): Promise<MediaFile> => {
-    setIsLoading(true);
     setError(null);
 
-    try {
-      const mediaFile = await storageService.saveMediaFile(
-        projectId, 
-        file, 
-        location, 
-        onProgress
-      );
+    // Wait for any pending operations for this project
+    const existingOperation = mediaFileQueue.current.get(projectId);
+    if (existingOperation) {
+      await existingOperation;
+    }
 
-      // Update project with new media file
-      if (currentProject?.id === projectId) {
-        console.log('Before update - existing media files:', currentProject.mediaFiles.length);
+    // Create a new operation promise that does everything atomically
+    const operation = (async () => {
+      try {
+        setIsLoading(true);
+        
+        // Save the media file first
+        const mediaFile = await storageService.saveMediaFile(
+          projectId, 
+          file, 
+          location, 
+          onProgress
+        );
+
+        // Always load fresh project data to ensure we have the latest state
+        const loadedProject = await storageService.loadProject(projectId);
+        if (!loadedProject) throw new Error('Project not found');
+
+        console.log('Before update - existing media files:', loadedProject.mediaFiles.length);
+        console.log('Existing files:', loadedProject.mediaFiles.map(f => f.name));
+        console.log('Adding new file:', mediaFile.name);
+        
         const updatedProject = {
-          ...currentProject,
-          mediaFiles: [...currentProject.mediaFiles, mediaFile],
+          ...loadedProject,
+          mediaFiles: [...loadedProject.mediaFiles, mediaFile],
           updatedAt: new Date().toISOString(),
         };
-        console.log('After update - media files count:', updatedProject.mediaFiles.length);
         
-        await saveProject(updatedProject);
-      } else {
-        // If currentProject doesn't match (e.g., newly created project), load and update it
-        const project = await storageService.loadProject(projectId);
-        if (project) {
-          const updatedProject = {
-            ...project,
-            mediaFiles: [...project.mediaFiles, mediaFile],
-            updatedAt: new Date().toISOString(),
-          };
-          
-          await saveProject(updatedProject);
-          // Set this as current project if none is set
-          if (!currentProject) {
-            setCurrentProject(updatedProject);
-          }
-        }
-      }
+        console.log('After update - media files count:', updatedProject.mediaFiles.length);
+        console.log('All files after update:', updatedProject.mediaFiles.map(f => f.name));
+        
+        // Update the current project state immediately
+        setCurrentProject(updatedProject);
+        
+        // Save the project
+        await storageService.saveProject(updatedProject, driveConnected ? 'both' : 'local');
+        
+        // Update the projects list
+        setProjects(prev => 
+          prev.map(p => p.id === updatedProject.id ? updatedProject : p)
+        );
 
-      return mediaFile;
-    } catch (err: any) {
-      setError(err.message);
-      throw err;
+        return mediaFile;
+      } catch (err: any) {
+        setError(err.message);
+        throw err;
+      } finally {
+        setIsLoading(false);
+      }
+    })();
+
+    // Queue this operation
+    mediaFileQueue.current.set(projectId, operation);
+    
+    try {
+      const result = await operation;
+      return result;
     } finally {
-      setIsLoading(false);
+      // Clean up after operation completes
+      mediaFileQueue.current.delete(projectId);
     }
-  }, [currentProject, saveProject]);
+  }, [driveConnected]);
 
   /**
    * Get media files for project

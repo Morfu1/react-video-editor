@@ -52,8 +52,25 @@ export const UploadZone = ({ acceptedTypes, className }: UploadZoneProps) => {
     }
 
     try {
+      // Filter out duplicate files based on name and size
+      const existingFiles = project.mediaFiles || [];
+      const newFiles = files.filter(file => {
+        const isDuplicate = existingFiles.some(existing => 
+          existing.name === file.name && existing.size === file.size
+        );
+        if (isDuplicate) {
+          console.log('Skipping duplicate file:', file.name);
+        }
+        return !isDuplicate;
+      });
+
+      if (newFiles.length === 0) {
+        console.log('No new files to upload (all duplicates)');
+        return;
+      }
+
       // Add files to project
-      for (const file of files) {
+      for (const file of newFiles) {
         try {
           console.log('Processing file:', file.name, file.type, file.size);
           await addMediaFile(

@@ -7,6 +7,7 @@ const MEDIA_STORE = 'mediaFiles';
 
 export class IndexedDBService {
   private db: IDBDatabase | null = null;
+  private saveQueue = new Map<string, Promise<void>>();
 
   /**
    * Initialize IndexedDB
@@ -49,6 +50,25 @@ export class IndexedDBService {
   async saveProject(project: Project): Promise<void> {
     if (!this.db) throw new Error('IndexedDB not initialized');
 
+    // Wait for any pending save operations for this project to complete
+    const existingPromise = this.saveQueue.get(project.id);
+    if (existingPromise) {
+      await existingPromise;
+    }
+
+    // Queue this save operation
+    const savePromise = this.performSave(project);
+    this.saveQueue.set(project.id, savePromise);
+    
+    try {
+      await savePromise;
+    } finally {
+      // Clean up after save completes
+      this.saveQueue.delete(project.id);
+    }
+  }
+
+  private async performSave(project: Project): Promise<void> {
     return new Promise((resolve, reject) => {
       const transaction = this.db!.transaction([PROJECTS_STORE], 'readwrite');
       const store = transaction.objectStore(PROJECTS_STORE);

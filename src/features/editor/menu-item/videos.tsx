@@ -8,25 +8,27 @@ import { IVideo } from "@designcombo/types";
 import React from "react";
 import { useIsDraggingOverTimeline } from "../hooks/is-dragging-over-timeline";
 import { useProject } from "@/contexts/ProjectContext";
-import { UploadZone } from "@/components/ui/upload-zone";
+import { SimpleUploadButton } from "@/components/ui/simple-upload-button";
+import { useGoogleAuth } from "@/hooks/useGoogleAuth";
 import { Trash2 } from "lucide-react";
 
 export const Videos = () => {
   const isDraggingOverTimeline = useIsDraggingOverTimeline();
-  const { currentProject } = useProject();
+  const { currentProject, addMediaFile } = useProject();
+  const { driveConnected } = useGoogleAuth();
 
   // Get uploaded videos from current project
   const projectVideos = React.useMemo(() => {
     if (!currentProject?.mediaFiles) return [];
-    return currentProject.mediaFiles
-      .filter(file => file.type === 'video')
-      .map(file => ({
-        id: file.id,
-        details: { src: file.url },
-        preview: file.url, // For videos, we'll use the URL as preview
-        type: 'video' as const,
-        name: file.name
-      } as Partial<IVideo>));
+    const videoFiles = currentProject.mediaFiles.filter(file => file.type === 'video');
+    console.log('Video files in project:', videoFiles.length, videoFiles.map(f => f.name));
+    return videoFiles.map(file => ({
+      id: file.id,
+      details: { src: file.url },
+      preview: file.url, // For videos, we'll use the URL as preview
+      type: 'video' as const,
+      name: file.name
+    } as Partial<IVideo>));
   }, [currentProject?.mediaFiles]);
 
   const handleAddVideo = (payload: Partial<IVideo>) => {
@@ -40,32 +42,84 @@ export const Videos = () => {
     });
   };
 
+  const handleFileUpload = async (files: File[]) => {
+    if (!currentProject) {
+      alert('No project selected. Please select a project first.');
+      return;
+    }
+
+    try {
+      // Filter out duplicate files based on name and size
+      const existingFiles = currentProject.mediaFiles || [];
+      const newFiles = files.filter(file => {
+        const isDuplicate = existingFiles.some(existing => 
+          existing.name === file.name && existing.size === file.size
+        );
+        if (isDuplicate) {
+          console.log('Skipping duplicate file:', file.name);
+        }
+        return !isDuplicate;
+      });
+
+      if (newFiles.length === 0) {
+        console.log('No new files to upload (all duplicates)');
+        return;
+      }
+
+      // Add files to project sequentially to avoid race conditions
+      console.log(`Processing ${newFiles.length} video files sequentially`);
+      for (const [index, file] of newFiles.entries()) {
+        try {
+          console.log(`Processing video file ${index + 1}/${newFiles.length}:`, file.name, file.type, file.size);
+          await addMediaFile(
+            currentProject.id, 
+            file, 
+            driveConnected ? 'both' : 'local'
+          );
+          console.log(`Video file ${index + 1} uploaded successfully:`, file.name);
+        } catch (error) {
+          console.error(`Failed to add video file ${index + 1}:`, error);
+        }
+      }
+      console.log('All video files processed successfully');
+    } catch (error) {
+      console.error('Failed to handle file upload:', error);
+    }
+  };
+
   return (
-    <div className="flex flex-1 flex-col">
+    <div className="flex flex-1 flex-col h-full">
       <div className="text-text-primary flex h-12 flex-none items-center px-4 text-sm font-medium">
         Videos
       </div>
-      <ScrollArea>
-        <div className="flex flex-col px-2">
-          {projectVideos.length === 0 ? (
-            <UploadZone acceptedTypes="video" />
-          ) : (
-            <>
-              {projectVideos.map((video, index) => {
-                return (
-                  <VideoItem
-                    key={video.id || index}
-                    video={video}
-                    shouldDisplayPreview={!isDraggingOverTimeline}
-                    handleAddVideo={handleAddVideo}
-                  />
-                );
-              })}
-              <UploadZone acceptedTypes="video" className="mt-4" />
-            </>
-          )}
+      <div className="flex-1 min-h-0 flex flex-col">
+        <div className="px-2 py-2 border-b border-gray-700">
+          <SimpleUploadButton 
+            acceptedTypes="video" 
+            onFilesSelected={handleFileUpload}
+          />
         </div>
-      </ScrollArea>
+        <ScrollArea className="flex-1">
+          <div className="flex flex-col px-2 space-y-2 py-2">
+            {projectVideos.map((video, index) => {
+              console.log(`Rendering video ${index + 1}:`, video.name);
+              return (
+                <VideoItem
+                  key={video.id || index}
+                  video={video}
+                  shouldDisplayPreview={!isDraggingOverTimeline}
+                  handleAddVideo={handleAddVideo}
+                />
+              );
+            })}
+            {projectVideos.length === 0 && (
+              <div className="text-center text-gray-400 py-8">
+                No videos uploaded yet
+              </div>
+            )}
+          </div>
+        </ScrollArea>
+      </div>
     </div>
   );
 };

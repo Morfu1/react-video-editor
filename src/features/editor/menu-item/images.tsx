@@ -8,27 +8,29 @@ import React from "react";
 import { useIsDraggingOverTimeline } from "../hooks/is-dragging-over-timeline";
 import { ADD_ITEMS } from "@designcombo/state";
 import { useProject } from "@/contexts/ProjectContext";
-import { UploadZone } from "@/components/ui/upload-zone";
+import { SimpleUploadButton } from "@/components/ui/simple-upload-button";
+import { useGoogleAuth } from "@/hooks/useGoogleAuth";
 import { Trash2 } from "lucide-react";
 
 export const Images = () => {
   const isDraggingOverTimeline = useIsDraggingOverTimeline();
-  const { currentProject } = useProject();
+  const { currentProject, addMediaFile } = useProject();
+  const { driveConnected } = useGoogleAuth();
   
   // Debug removed for cleaner console
 
   // Get uploaded images from current project
   const uploadedImages = React.useMemo(() => {
     if (!currentProject?.mediaFiles) return [];
-    return currentProject.mediaFiles
-      .filter(file => file.type === 'image')
-      .map(file => ({
-        id: file.id,
-        details: { src: file.url },
-        preview: file.url,
-        type: 'image' as const,
-        name: file.name
-      } as Partial<IImage>));
+    const imageFiles = currentProject.mediaFiles.filter(file => file.type === 'image');
+    console.log('Image files in project:', imageFiles.length, imageFiles.map(f => f.name));
+    return imageFiles.map(file => ({
+      id: file.id,
+      details: { src: file.url },
+      preview: file.url,
+      type: 'image' as const,
+      name: file.name
+    } as Partial<IImage>));
   }, [currentProject?.mediaFiles]);
 
   // Show only project images (no stock images)
@@ -74,32 +76,84 @@ export const Images = () => {
     });
   };
 
+  const handleFileUpload = async (files: File[]) => {
+    if (!currentProject) {
+      alert('No project selected. Please select a project first.');
+      return;
+    }
+
+    try {
+      // Filter out duplicate files based on name and size
+      const existingFiles = currentProject.mediaFiles || [];
+      const newFiles = files.filter(file => {
+        const isDuplicate = existingFiles.some(existing => 
+          existing.name === file.name && existing.size === file.size
+        );
+        if (isDuplicate) {
+          console.log('Skipping duplicate file:', file.name);
+        }
+        return !isDuplicate;
+      });
+
+      if (newFiles.length === 0) {
+        console.log('No new files to upload (all duplicates)');
+        return;
+      }
+
+      // Add files to project sequentially to avoid race conditions
+      console.log(`Processing ${newFiles.length} image files sequentially`);
+      for (const [index, file] of newFiles.entries()) {
+        try {
+          console.log(`Processing image file ${index + 1}/${newFiles.length}:`, file.name, file.type, file.size);
+          await addMediaFile(
+            currentProject.id, 
+            file, 
+            driveConnected ? 'both' : 'local'
+          );
+          console.log(`Image file ${index + 1} uploaded successfully:`, file.name);
+        } catch (error) {
+          console.error(`Failed to add image file ${index + 1}:`, error);
+        }
+      }
+      console.log('All image files processed successfully');
+    } catch (error) {
+      console.error('Failed to handle file upload:', error);
+    }
+  };
+
   return (
-    <div className="flex flex-1 flex-col">
+    <div className="flex flex-1 flex-col h-full">
       <div className="text-text-primary flex h-12 flex-none items-center px-4 text-sm font-medium">
         Photos
       </div>
-      <ScrollArea>
-        <div className="flex flex-col px-2">
-          {allImages.length === 0 ? (
-            <UploadZone acceptedTypes="image" />
-          ) : (
-            <>
-              {allImages.map((image, index) => {
-                return (
-                  <ImageItem
-                    key={image.id || index}
-                    image={image}
-                    shouldDisplayPreview={!isDraggingOverTimeline}
-                    handleAddImage={handleAddImage}
-                  />
-                );
-              })}
-              <UploadZone acceptedTypes="image" className="mt-4" />
-            </>
-          )}
+      <div className="flex-1 min-h-0 flex flex-col">
+        <div className="px-2 py-2 border-b border-gray-700">
+          <SimpleUploadButton 
+            acceptedTypes="image" 
+            onFilesSelected={handleFileUpload}
+          />
         </div>
-      </ScrollArea>
+        <ScrollArea className="flex-1">
+          <div className="flex flex-col px-2 space-y-2 py-2">
+            {allImages.map((image, index) => {
+              console.log(`Rendering image ${index + 1}:`, image.name);
+              return (
+                <ImageItem
+                  key={image.id || index}
+                  image={image}
+                  shouldDisplayPreview={!isDraggingOverTimeline}
+                  handleAddImage={handleAddImage}
+                />
+              );
+            })}
+            {allImages.length === 0 && (
+              <div className="text-center text-gray-400 py-8">
+                No images uploaded yet
+              </div>
+            )}
+          </div>
+        </ScrollArea>
+      </div>
     </div>
   );
 };
