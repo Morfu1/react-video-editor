@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Project, MediaFile } from '@/types/project';
+import { Project, ProjectSettings, MediaFile } from '@/types/project';
 import { HybridStorageService, StorageLocation } from '@/services/storage/hybridStorageService';
 import { useGoogleAuth } from './useGoogleAuth';
 import useStore from '@/features/editor/store/use-store';
@@ -68,7 +68,6 @@ export const useProjectManager = () => {
         settings: {
           resolution: { width: 1920, height: 1080 },
           fps: 30,
-          duration: 30000, // 30 seconds default
           quality: 'high',
         },
         mediaFiles: [],
@@ -112,6 +111,20 @@ export const useProjectManager = () => {
       // Clear current timeline first
       clearTimeline();
       
+      // Load project settings first (but not duration - that comes from timeline)
+      if (project) {
+        const projectSettings = {
+          fps: project.settings.fps,
+          size: {
+            width: project.settings.resolution.width,
+            height: project.settings.resolution.height
+          }
+        };
+        
+        // Initialize store with project settings
+        loadTimelineState(projectSettings);
+      }
+
       if (project?.timeline) {
         console.log('Loading timeline state for project:', projectId);
         console.log('Timeline data:', JSON.stringify({
@@ -123,8 +136,16 @@ export const useProjectManager = () => {
         // Store timeline data for restoration when timeline component is ready
         (window as any).__pendingTimelineRestore = project.timeline;
         
-        // Also load into store
-        loadTimelineState(project.timeline);
+        // Also load into store with merged settings (preserve timeline duration)
+        const timelineWithSettings = {
+          ...project.timeline,
+          fps: project.settings.fps,
+          size: {
+            width: project.settings.resolution.width,
+            height: project.settings.resolution.height
+          }
+        };
+        loadTimelineState(timelineWithSettings);
         
         console.log('Timeline data loaded and stored for restoration');
       } else {
@@ -432,6 +453,34 @@ export const useProjectManager = () => {
     await saveProject(currentProject);
   }, [currentProject, saveProject]);
 
+  const updateProjectSettings = async (projectId: string, settings: ProjectSettings) => {
+    try {
+      const project = projects.find(p => p.id === projectId);
+      if (!project) throw new Error('Project not found');
+
+      const updatedProject: Project = {
+        ...project,
+        settings,
+        updatedAt: new Date().toISOString(),
+      };
+
+      await storageService.saveProject(updatedProject, project.storage.location);
+      
+      // Update projects list
+      setProjects(prev => prev.map(p => 
+        p.id === projectId ? updatedProject : p
+      ));
+
+      // Update current project if it's the one being modified
+      if (currentProject?.id === projectId) {
+        setCurrentProject(updatedProject);
+      }
+    } catch (error) {
+      console.error('Failed to update project settings:', error);
+      setError('Failed to update project settings');
+    }
+  };
+
   return {
     // State
     projects,
@@ -457,5 +506,6 @@ export const useProjectManager = () => {
     clearError: () => setError(null),
     setCurrentProject,
     saveCurrentTimeline,
+    updateProjectSettings,
   };
 };

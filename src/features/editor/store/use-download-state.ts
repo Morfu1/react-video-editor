@@ -152,7 +152,7 @@ export const useDownloadState = create<DownloadState>((set, get) => ({
         const exportOptions = {
           design: payload,
           options: {
-            fps: 30,
+            fps: payload.fps || 30,
             size: payload.size,
             format: get().exportType,
             quality,

@@ -37,7 +37,6 @@ export interface MediaFile {
 export interface ProjectSettings {
   resolution: { width: number; height: number };
   fps: number;
-  duration: number;
   quality: string;
 }
 

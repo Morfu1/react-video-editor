@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ProjectCard } from './ProjectCard';
+import { ProjectSettingsDialog } from './ProjectSettingsDialog';
 import { StorageLocationSelector } from './StorageLocationSelector';
 import { useProject } from '@/contexts/ProjectContext';
 import { useGoogleAuth } from '@/hooks/useGoogleAuth';
@@ -33,6 +34,7 @@ export const ProjectPickerDialog = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [newProjectName, setNewProjectName] = useState('My Awesome Video');
   const [newProjectLocation, setNewProjectLocation] = useState<StorageLocation>('local');
+  const [settingsProject, setSettingsProject] = useState<Project | null>(null);
 
   const handleLocationChange = (location: StorageLocation) => {
     console.log('Storage location changed:', location);
@@ -40,8 +42,7 @@ export const ProjectPickerDialog = ({
   };
   const [isCreating, setIsCreating] = useState(false);
   
-  const { projects, createProject, deleteProject } = useProject();
-  const { driveConnected } = useGoogleAuth();
+  const { projects, createProject, deleteProject, updateProjectSettings } = useProject();
 
   const filteredProjects = projects.filter(project =>
     project.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -123,6 +124,7 @@ export const ProjectPickerDialog = ({
                     project={project}
                     onSelect={handleSelectProject}
                     onDelete={handleDeleteProject}
+                    onSettings={setSettingsProject}
                   />
                 ))
               ) : (
@@ -162,6 +164,15 @@ export const ProjectPickerDialog = ({
           </TabsContent>
         </Tabs>
       </DialogContent>
+      
+      {settingsProject && (
+        <ProjectSettingsDialog
+          project={settingsProject}
+          open={!!settingsProject}
+          onOpenChange={(open) => !open && setSettingsProject(null)}
+          onSave={updateProjectSettings}
+        />
+      )}
     </Dialog>
   );
 };

@@ -45,8 +45,8 @@ interface ITimelineStore {
 
 const useStore = create<ITimelineStore>((set, get) => ({
   size: {
-    width: 1080,
-    height: 1920,
+    width: 1920,
+    height: 1080,
   },
 
   timeline: null,
@@ -157,7 +157,7 @@ const useStore = create<ITimelineStore>((set, get) => ({
         segments: 5,
       },
       scroll: timelineData.scroll || { left: 0, top: 0 },
-      size: timelineData.size || { width: 1080, height: 1920 },
+      size: timelineData.size || { width: 1920, height: 1080 },
       tracks: timelineData.tracks || [],
       trackItemIds: timelineData.trackItemIds || [],
       transitionIds: timelineData.transitionIds || [],

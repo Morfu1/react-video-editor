@@ -2,7 +2,7 @@ import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { SyncStatusIndicator } from './SyncStatusIndicator';
 import { formatDistanceToNow } from 'date-fns';
-import { Play, Trash2, Share2 } from 'lucide-react';
+import { Play, Trash2, Share2, Settings } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -21,6 +21,7 @@ interface ProjectCardProps {
   onSelect: (project: Project) => void;
   onDelete?: (project: Project) => void;
   onShare?: (project: Project) => void;
+  onSettings?: (project: Project) => void;
   className?: string;
 }
 
@@ -29,12 +30,18 @@ export const ProjectCard = ({
   onSelect, 
   onDelete, 
   onShare,
+  onSettings,
   className 
 }: ProjectCardProps) => {
   const handleSelect = () => onSelect(project);
   const handleShare = (e: React.MouseEvent) => {
     e.stopPropagation();
     onShare?.(project);
+  };
+
+  const handleSettings = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onSettings?.(project);
   };
 
   return (
@@ -73,6 +80,16 @@ export const ProjectCard = ({
           Open
         </Button>
         
+        {onSettings && (
+          <Button 
+            size="sm" 
+            variant="outline"
+            onClick={handleSettings}
+          >
+            <Settings className="w-4 h-4" />
+          </Button>
+        )}
+
         {onShare && project.storage.location !== 'local' && (
           <Button 
             size="sm" 
