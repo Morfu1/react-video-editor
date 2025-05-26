@@ -181,15 +181,6 @@ export default function Navbar({
             <Save width={18} /> Save
           </Button>
           <ExportButton stateManager={stateManager} />
-          <Button
-            className="flex h-8 gap-1 border border-border"
-            variant="default"
-            onClick={() => {
-              window.open("https://discord.gg/jrZs3wZyM5", "_blank");
-            }}
-          >
-            Discord
-          </Button>
           {user ? (
             <UserDropdown />
           ) : (
