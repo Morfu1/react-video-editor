@@ -36,7 +36,7 @@ const stateManager = new StateManager({
 (window as any).__globalStateManager = stateManager;
 
 const Editor = () => {
-  const [projectName, setProjectName] = useState<string>("Untitled video");
+  const [projectName, setProjectName] = useState<string>("New Project");
   const [showProjectPicker, setShowProjectPicker] = useState(false);
   const [projectPickerTab, setProjectPickerTab] = useState<'existing' | 'new'>('existing');
   const timelinePanelRef = useRef<ImperativePanelHandle>(null);
@@ -49,11 +49,14 @@ const Editor = () => {
 
   // Show project picker if no current project
   useEffect(() => {
+    console.log('useEffect currentProject changed:', currentProject?.id, currentProject?.name);
     if (!currentProject) {
-      setProjectName("Untitled video");
+      console.log('No current project, setting New Project');
+      setProjectName("New Project");
       setProjectPickerTab('existing');
       setShowProjectPicker(true);
     } else {
+      console.log('Setting project name to:', currentProject.name);
       setProjectName(currentProject.name);
       setShowProjectPicker(false); // Hide picker when project is loaded
       
@@ -77,8 +80,8 @@ const Editor = () => {
     try {
       console.log('handleSelectProject called with:', project.id, project.name);
       const loadedProject = await loadProject(project.id);
-      console.log('Project loaded successfully:', loadedProject?.id);
-      setProjectName(project.name);
+      console.log('Project loaded successfully:', loadedProject?.id, loadedProject?.name);
+      console.log('Current project after load:', currentProject?.id, currentProject?.name);
       setShowProjectPicker(false);
     } catch (error) {
       console.error('Failed to load project:', error);

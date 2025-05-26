@@ -41,6 +41,11 @@ export default function Navbar({
   const [title, setTitle] = useState(projectName);
   const { user, driveConnected } = useGoogleAuth();
   const { currentProject, createProject, saveCurrentTimeline } = useProject();
+  
+  // Update title when projectName changes
+  useEffect(() => {
+    setTitle(projectName);
+  }, [projectName]);
 
   const handleUndo = () => {
     dispatch(HISTORY_UNDO);
@@ -64,22 +69,19 @@ export default function Navbar({
     }
   };
 
-  // Create a debounced function for setting the project name
-  const debouncedSetProjectName = useCallback(
-    debounce((name: string) => {
-      console.log("Debounced setProjectName:", name);
-      setProjectName(name);
-    }, 2000), // 2 seconds delay
-    [],
-  );
-
-  // Update the debounced function whenever the title changes
-  useEffect(() => {
-    debouncedSetProjectName(title);
-  }, [title, debouncedSetProjectName]);
-
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setTitle(e.target.value);
+    const newTitle = e.target.value;
+    setTitle(newTitle);
+    
+    // Only update project name if user is actually editing (not programmatic changes)
+    // We use a simple debounce here to avoid excessive calls while typing
+    clearTimeout((window as any).__titleChangeTimeout);
+    (window as any).__titleChangeTimeout = setTimeout(() => {
+      if (newTitle !== projectName) {
+        console.log("User edited title, updating project name:", newTitle);
+        setProjectName(newTitle);
+      }
+    }, 1000);
   };
 
   return (
