@@ -61,10 +61,15 @@ const BasicAudio = ({ trackItem }: { trackItem: ITrackItem & IAudio }) => {
     });
   };
 
+
+
   return (
     <div className="flex flex-1 flex-col">
       <div className="text-text-primary flex h-12 flex-none items-center px-4 text-sm font-medium">
-        Audio
+        <div>
+          <div>Audio</div>
+          <div className="text-xs text-gray-500 font-normal">{trackItem.name}</div>
+        </div>
       </div>
       <ScrollArea className="h-full">
         <Button onClick={handleReplace} variant={"secondary"} size={"lg"}>

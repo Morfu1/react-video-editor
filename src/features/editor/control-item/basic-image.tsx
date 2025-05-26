@@ -169,10 +169,39 @@ const BasicImage = ({ trackItem }: { trackItem: ITrackItem & IImage }) => {
     });
   };
 
+  const getOriginalFilename = (src: string): string => {
+    try {
+      const url = new URL(src);
+      const pathname = url.pathname;
+      let filename = pathname.split('/').pop() || '';
+      filename = filename.split('?')[0]; // Remove query parameters
+      
+      // Remove timestamp pattern (e.g., "ada_2-1748185411606.png" -> "ada_2.png")
+      filename = filename.replace(/-\d{13}(\.\w+)$/, '$1');
+      
+      return filename;
+    } catch {
+      let filename = src.split('/').pop()?.split('?')[0] || '';
+      // Remove timestamp pattern for non-URL strings too
+      filename = filename.replace(/-\d{13}(\.\w+)$/, '$1');
+      return filename;
+    }
+  };
+
+
+
   return (
     <div className="flex flex-1 flex-col">
       <div className="text-text-primary flex h-12 flex-none items-center px-4 text-sm font-medium">
-        Image
+        <div>
+          <div>Image</div>
+          <div className="text-xs text-gray-500 font-normal">
+            {trackItem.name && trackItem.name !== 'image' 
+              ? trackItem.name 
+              : getOriginalFilename(trackItem.details.src)
+            }
+          </div>
+        </div>
       </div>
       <ScrollArea className="h-full">
         <div className="flex flex-col gap-2 px-4">
