@@ -1,7 +1,8 @@
 import { dispatch } from "@designcombo/events";
-import { ADD_AUDIO, ADD_IMAGE, ADD_VIDEO } from "@designcombo/state";
+import { ADD_AUDIO, ADD_ITEMS } from "@designcombo/state";
 import { generateId } from "@designcombo/timeline";
 import React, { useCallback, useState } from "react";
+import useStore from "../store/use-store";
 
 enum AcceptedDropTypes {
   IMAGE = "image",
@@ -25,18 +26,62 @@ interface DroppableAreaProps {
 const useDragAndDrop = (onDragStateChange?: (isDragging: boolean) => void) => {
   const [isPointerInside, setIsPointerInside] = useState(false);
   const [isDraggingOver, setIsDraggingOver] = useState(false);
+  const { size } = useStore();
 
   const handleDrop = useCallback((draggedData: DraggedData) => {
-    const payload = { ...draggedData, id: generateId() };
+    const id = generateId();
+    
     switch (draggedData.type) {
       case AcceptedDropTypes.IMAGE:
-        dispatch(ADD_IMAGE, { payload });
+        dispatch(ADD_ITEMS, {
+          payload: {
+            trackItems: [
+              {
+                id,
+                type: "image",
+                display: {
+                  from: 0,
+                  to: 5000,
+                },
+                details: {
+                  src: draggedData.details?.src,
+                },
+                metadata: {},
+              },
+            ],
+          },
+          options: {
+            scaleMode: "fit",
+            resourceId: "main",
+          },
+        });
         break;
       case AcceptedDropTypes.VIDEO:
-        dispatch(ADD_VIDEO, { payload });
+        dispatch(ADD_ITEMS, {
+          payload: {
+            trackItems: [
+              {
+                id,
+                type: "video",
+                display: {
+                  from: 0,
+                  to: 5000,
+                },
+                details: {
+                  src: draggedData.details?.src,
+                },
+                metadata: {},
+              },
+            ],
+          },
+          options: {
+            scaleMode: "fit",
+            resourceId: "main",
+          },
+        });
         break;
       case AcceptedDropTypes.AUDIO:
-        dispatch(ADD_AUDIO, { payload });
+        dispatch(ADD_AUDIO, { payload: { ...draggedData, id } });
         break;
     }
   }, []);

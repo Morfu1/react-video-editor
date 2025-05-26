@@ -6,7 +6,6 @@ import { DroppableArea } from "./droppable";
 import { useProject } from "@/contexts/ProjectContext";
 import { useGoogleAuth } from "@/hooks/useGoogleAuth";
 import { dispatch } from "@designcombo/events";
-import { ADD_VIDEO, ADD_IMAGE, ADD_AUDIO } from "@designcombo/state";
 import { generateId } from "@designcombo/timeline";
 
 const SceneEmpty = () => {

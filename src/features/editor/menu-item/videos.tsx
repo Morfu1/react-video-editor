@@ -2,12 +2,13 @@ import Draggable from "@/components/shared/draggable";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 import { dispatch } from "@designcombo/events";
-import { ADD_VIDEO } from "@designcombo/state";
+import { ADD_ITEMS } from "@designcombo/state";
 import { generateId } from "@designcombo/timeline";
 import { IVideo } from "@designcombo/types";
 import React from "react";
 import { useIsDraggingOverTimeline } from "../hooks/is-dragging-over-timeline";
 import { useProject } from "@/contexts/ProjectContext";
+import useStore from "../store/use-store";
 import { SimpleUploadButton } from "@/components/ui/simple-upload-button";
 import { useGoogleAuth } from "@/hooks/useGoogleAuth";
 import { Trash2 } from "lucide-react";
@@ -16,6 +17,7 @@ export const Videos = () => {
   const isDraggingOverTimeline = useIsDraggingOverTimeline();
   const { currentProject, addMediaFile } = useProject();
   const { driveConnected } = useGoogleAuth();
+  const { size } = useStore();
 
   // Get uploaded videos from current project
   const projectVideos = React.useMemo(() => {
@@ -32,7 +34,29 @@ export const Videos = () => {
   }, [currentProject?.mediaFiles]);
 
   const handleAddVideo = (payload: Partial<IVideo>) => {
-    dispatch(ADD_VIDEO, { payload: { ...payload, id: generateId() } });
+    const id = generateId();
+    dispatch(ADD_ITEMS, {
+      payload: {
+        trackItems: [
+          {
+            id,
+            type: "video",
+            display: {
+              from: 0,
+              to: 5000,
+            },
+            details: {
+              src: payload.details?.src,
+            },
+            metadata: {},
+          },
+        ],
+      },
+      options: {
+        scaleMode: "fit",
+        resourceId: "main",
+      },
+    });
   };
 
   const handleFileUpload = async (files: File[]) => {

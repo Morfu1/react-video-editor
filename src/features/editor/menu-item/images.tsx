@@ -6,8 +6,9 @@ import Draggable from "@/components/shared/draggable";
 import { IImage } from "@designcombo/types";
 import React from "react";
 import { useIsDraggingOverTimeline } from "../hooks/is-dragging-over-timeline";
-import { ADD_IMAGE } from "@designcombo/state";
+import { ADD_ITEMS } from "@designcombo/state";
 import { useProject } from "@/contexts/ProjectContext";
+import useStore from "../store/use-store";
 import { SimpleUploadButton } from "@/components/ui/simple-upload-button";
 import { useGoogleAuth } from "@/hooks/useGoogleAuth";
 import { Trash2 } from "lucide-react";
@@ -16,6 +17,7 @@ export const Images = () => {
   const isDraggingOverTimeline = useIsDraggingOverTimeline();
   const { currentProject, addMediaFile } = useProject();
   const { driveConnected } = useGoogleAuth();
+  const { size } = useStore();
   
   // Debug removed for cleaner console
 
@@ -39,7 +41,29 @@ export const Images = () => {
   }, [uploadedImages]);
 
   const handleAddImage = (payload: Partial<IImage>) => {
-    dispatch(ADD_IMAGE, { payload: { ...payload, id: generateId() } });
+    const id = generateId();
+    dispatch(ADD_ITEMS, {
+      payload: {
+        trackItems: [
+          {
+            id,
+            type: "image",
+            display: {
+              from: 0,
+              to: 5000,
+            },
+            details: {
+              src: payload.details?.src,
+            },
+            metadata: {},
+          },
+        ],
+      },
+      options: {
+        scaleMode: "fit",
+        resourceId: "main",
+      },
+    });
   };
 
   const handleFileUpload = async (files: File[]) => {

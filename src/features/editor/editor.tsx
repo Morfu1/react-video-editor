@@ -27,8 +27,8 @@ import type { Project } from "@/types/project";
 
 const stateManager = new StateManager({
   size: {
-    width: 1080,
-    height: 1920,
+    width: 1920,
+    height: 1080,
   },
 });
 
@@ -56,6 +56,20 @@ const Editor = () => {
     } else {
       setProjectName(currentProject.name);
       setShowProjectPicker(false); // Hide picker when project is loaded
+      
+      // Update StateManager and store with project's resolution
+      const projectSize = {
+        width: currentProject.settings.resolution.width,
+        height: currentProject.settings.resolution.height
+      };
+      
+      console.log('Updating canvas size to project resolution:', projectSize);
+      
+      // Update StateManager size
+      stateManager.updateState({ size: projectSize });
+      
+      // Update Zustand store size
+      useStore.setState({ size: projectSize });
     }
   }, [currentProject]);
 
